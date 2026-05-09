@@ -7,7 +7,7 @@ import platform
 import sys
 
 name = 'AetherPin Connector'
-entry = 'agent/__main__.py'
+entry = 'run.py'
 
 args = [
     entry,
