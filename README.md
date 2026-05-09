@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://aetherpin.com/assets/img/og-image.png" alt="AetherPin" width="100%">
-</p>
+<h1 align="center" style="font-weight:300;letter-spacing:12px">A E T H E R P I N</h1>
 
 <p align="center">
   <a href="https://aetherpin.com/connector">aetherpin.com/connector</a>
