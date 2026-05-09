@@ -1,8 +1,10 @@
 import argparse
 import sys
+import os
 
 from .watcher import watch_folder
 from .sender import DEFAULT_API
+from . import config as cfg
 
 
 def pick_folder():
@@ -60,31 +62,93 @@ def ask_key():
     return key.strip()
 
 
+def ask_autostart() -> bool:
+    """Ask user if they want auto-start on boot (Windows only)."""
+    import subprocess, platform
+    if platform.system() != 'Windows':
+        return False
+    try:
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        ans = messagebox.askyesno('AetherPin Connector',
+                                   'Start automatically when Windows boots?\n\n'
+                                   '(You can change this later by running the .exe with --reconfigure)')
+        root.destroy()
+        return bool(ans)
+    except Exception:
+        return False
+
+
+def first_run_setup():
+    """Collect key + folder + auto-start preference, save to config."""
+    api_key = ask_key()
+    if not api_key.startswith('ap_'):
+        print('Error: API key must start with "ap_"')
+        sys.exit(1)
+
+    watch_path = pick_folder()
+    enable_autostart = ask_autostart()
+
+    cfg.save({
+        'api_key': api_key,
+        'watch_path': watch_path,
+        'api_url': DEFAULT_API,
+        'autostart': enable_autostart,
+    })
+
+    if enable_autostart:
+        exe = sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(sys.argv[0])
+        ok = cfg.autostart_enable(exe)
+        print(f'[setup] Auto-start on boot: {"enabled" if ok else "failed"}')
+
+    return api_key, watch_path, DEFAULT_API
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='aetherpin-connector',
         description='AetherPin Connector — send telescope data to the live sky map',
     )
-    parser.add_argument('--key', default=None, help='Your AetherPin API key (ap_...)')
-    parser.add_argument('--watch', default=None, help='Path to FITS image folder')
-    parser.add_argument('--api', default=DEFAULT_API, help='API endpoint URL')
+    parser.add_argument('--key', default=None, help='Override saved API key')
+    parser.add_argument('--watch', default=None, help='Override saved watch folder')
+    parser.add_argument('--api', default=None, help='Override API endpoint URL')
+    parser.add_argument('--reconfigure', action='store_true', help='Re-run setup (asks for key, folder, autostart)')
+    parser.add_argument('--no-autostart', action='store_true', help='Disable auto-start on boot')
     args = parser.parse_args()
 
-    # If no key provided, open dialog
-    api_key = args.key or ask_key()
+    if args.no_autostart:
+        cfg.autostart_disable()
+        print('[setup] Auto-start disabled.')
+        sys.exit(0)
+
+    saved = cfg.load()
+
+    if args.reconfigure or not saved.get('api_key') or not saved.get('watch_path'):
+        # First run or explicit reconfigure
+        print('AetherPin Connector — Setup')
+        api_key, watch_path, api_url = first_run_setup()
+    else:
+        api_key = saved.get('api_key')
+        watch_path = saved.get('watch_path')
+        api_url = saved.get('api_url') or DEFAULT_API
+
+    # CLI flags override saved config
+    if args.key: api_key = args.key
+    if args.watch: watch_path = args.watch
+    if args.api: api_url = args.api
 
     if not api_key.startswith('ap_'):
         print('Error: API key must start with "ap_"')
         sys.exit(1)
 
-    # If no folder provided, open folder picker
-    watch_path = args.watch or pick_folder()
-
-    print('AetherPin Connector v0.1.0')
+    print('AetherPin Connector v0.2.0')
+    print(f'Server:  {api_url}')
     print(f'API key: {api_key[:6]}...{api_key[-4:]}')
     print(f'Folder:  {watch_path}')
 
-    watch_folder(watch_path, api_key, args.api)
+    watch_folder(watch_path, api_key, api_url)
 
 
 if __name__ == '__main__':
