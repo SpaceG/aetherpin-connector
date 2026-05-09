@@ -1,179 +1,107 @@
-# AetherPin Connector — Sphere Live Map
+<p align="center">
+  <img src="https://aetherpin.com/assets/img/og-image.png" alt="AetherPin" width="100%">
+</p>
 
-Remote-Teleskope automatisch auf der Sternenkarte anzeigen.
+<p align="center">
+  <a href="https://aetherpin.com/connector">aetherpin.com/connector</a>
+</p>
 
-## Architektur
+# AetherPin Connector
 
-```
-Telescope PC                    AetherPin Server              Browser
-┌──────────────┐    POST       ┌──────────────────┐          ┌──────────┐
-│ AetherPin    │──────────────▶│ /api/remote-      │          │ /space/  │
-│ Connector    │  alle 10s     │ telescope/live    │◀─────────│ sphere     │
-│ (Python)     │               │                  │  GET 10s  │          │
-└──────────────┘               └──────────────────┘          └──────────┘
-  liest FITS Header              speichert in DB               zeigt Pins
-  sendet RA/DEC/Target           120s timeout = offline        live auf Map
-```
+Link your telescope to the [AetherPin](https://aetherpin.com) live space map. The Connector watches your imaging folder for new FITS, XISF, or SER files, reads the target coordinates from the headers, and sends a live pin to the map. Everyone can see what you're imaging — in real time.
 
-## User Flow
+## Download
 
-1. Account erstellen auf aetherpin.com
-2. Teleskop registrieren → API Key erhalten
-3. AetherPin Connector herunterladen (.exe / CLI)
-4. API Key eingeben, Watch-Ordner setzen
-5. Connector läuft im Hintergrund → Pins erscheinen auf /space/sphere
+| Platform | Download |
+|----------|----------|
+| Windows | [AetherPin.Connector.exe](https://github.com/SpaceG/aetherpin-connector/releases/download/v0.2.0/AetherPin.Connector.exe) |
+| macOS | [AetherPin.Connector.Mac.zip](https://github.com/SpaceG/aetherpin-connector/releases/download/v0.2.0/AetherPin.Connector.Mac.zip) |
+| Linux | [AetherPin.Connector.Linux](https://github.com/SpaceG/aetherpin-connector/releases/download/v0.2.0/AetherPin.Connector.Linux) |
 
----
+Or browse all releases: [GitHub Releases](https://github.com/SpaceG/aetherpin-connector/releases)
 
-## Roadmap
+## Setup
 
-### Phase 1 — Server-Seite ⬅ AKTUELL
-Status: **In Arbeit**
+1. Create an account on [aetherpin.com](https://aetherpin.com)
+2. Go to [Profile](https://aetherpin.com/profile) → Remote Telescope Integration
+3. Register your telescope and click **Generate API Key** — copy the key immediately (shown once)
+4. Download and run the Connector
+5. Paste your API key, select your image folder
+6. Done — your pin appears on the [space map](https://aetherpin.com/space) within 15 seconds
 
-| # | Aufgabe | Datei(en) | Status |
-|---|---------|-----------|--------|
-| 1 | DB-Tabellen | `connector/sql/001_tables.sql` | ☑ |
-| 2 | POST API (Agent → Server) | `api/remote-telescope/live.php` | ☑ |
-| 3 | GET API (Map ← Server) | `api/remote-telescope/live.php` | ☑ |
-| 4 | Teleskop-Settings UI | `profile.php` + `api/remote-telescope/manage.php` | ☑ |
-| 5 | /space/sphere Seite | `sphere.php` | ☐ |
-| 6 | JS Live-Polling + Marker | `assets/js/sphere.js` | ☐ |
-| 7 | .htaccess Route | `.htaccess` | ☑ |
-
-### Phase 2 — Connector CLI (Python)
-Status: **Geplant**
-
-| # | Aufgabe | Datei(en) | Status |
-|---|---------|-----------|--------|
-| 1 | FITS Header Reader | `connector/agent/fits_reader.py` | ☐ |
-| 2 | Ordner-Watcher | `connector/agent/watcher.py` | ☐ |
-| 3 | API Sender | `connector/agent/sender.py` | ☐ |
-| 4 | CLI Entry Point | `connector/agent/main.py` | ☐ |
-| 5 | Config | `connector/agent/config.ini.example` | ☐ |
-
-### Phase 3 — Connector GUI (.exe)
-Status: **Geplant**
-
-| # | Aufgabe | Status |
-|---|---------|--------|
-| 1 | GUI Fenster (tkinter/PyQt) | ☐ |
-| 2 | PyInstaller → .exe | ☐ |
-| 3 | py2app → .app (Mac) | ☐ |
-| 4 | Download-Seite auf aetherpin.com | ☐ |
-
-### Phase 4 — Erweitert
-Status: **Später**
-
-| # | Aufgabe | Status |
-|---|---------|--------|
-| 1 | NINA Plugin | ☐ |
-| 2 | ASIAIR Support | ☐ |
-| 3 | System Tray | ☐ |
-| 4 | Auto-Update | ☐ |
-| 5 | Mehrere Teleskope gleichzeitig | ☐ |
-
----
-
-## Dateiübersicht (alle Dateien die zu diesem Feature gehören)
+## How it works
 
 ```
-aetherlog/
-├── connector/
-│   ├── README.md                      ← diese Datei
-│   ├── sql/
-│   │   └── 001_tables.sql            ← DB Migration
-│   └── agent/                         ← Python Connector (Phase 2+3)
-│       ├── main.py
-│       ├── fits_reader.py
-│       ├── watcher.py
-│       ├── sender.py
-│       └── config.ini.example
-├── api/
-│   └── remote-telescope/
-│       └── live.php                   ← POST + GET API
-├── sphere.php                           ← /space/sphere Seite
-├── assets/
-│   └── js/
-│       └── sphere.js                    ← Live-Polling + Canvas Marker
+Telescope PC                     AetherPin Server              Browser
+┌──────────────────┐             ┌──────────────────┐          ┌──────────┐
+│ AetherPin        │   POST      │ /api/remote-     │   GET    │ /space   │
+│ Connector        │────────────▶│ telescope/live   │◀─────────│          │
+│                  │  on new file │                  │  polling │          │
+└──────────────────┘             └──────────────────┘          └──────────┘
+  watches folder                   stores live status            shows pin
+  reads FITS/XISF/SER headers     2 min timeout = offline       on space map
 ```
 
----
+The Connector runs in the background. When your capture software (NINA, SharpCap, FireCapture, etc.) saves a new file, the Connector picks it up, extracts the target name and coordinates, and sends a live pin to the server.
 
-## DB Schema
+When you stop imaging or close the Connector, the pin disappears from the map after 2 minutes.
 
-### remote_telescopes
-| Spalte | Typ | Beschreibung |
-|--------|-----|--------------|
-| id | INT AUTO_INCREMENT | PK |
-| user_id | INT | FK → users |
-| name | VARCHAR(100) | z.B. "Starfront 14" |
-| observatory | VARCHAR(100) | z.B. "Sphere", "Backyard" |
-| software | VARCHAR(100) | z.B. "NINA", "SharpCap" |
-| api_key_hash | VARCHAR(255) | bcrypt Hash des API Keys |
-| is_active | TINYINT(1) | 1 = aktiv |
-| created_at | DATETIME | |
-| updated_at | DATETIME | |
+## Supported formats
 
-### remote_telescope_live_status
-| Spalte | Typ | Beschreibung |
-|--------|-----|--------------|
-| id | INT AUTO_INCREMENT | PK |
-| telescope_id | INT | FK → remote_telescopes |
-| target_name | VARCHAR(100) | z.B. "M42" |
-| ra | VARCHAR(20) | z.B. "05:35:17" |
-| dec | VARCHAR(20) | z.B. "-05:23:28" |
-| status | ENUM('live','idle','offline') | |
-| last_seen | DATETIME | für 120s Timeout |
-| created_at | DATETIME | |
-| updated_at | DATETIME | |
+| Format | Target source | Coordinate source |
+|--------|--------------|-------------------|
+| FITS (.fits, .fit) | `OBJECT` header | `RA` + `DEC` headers |
+| XISF (.xisf) | `OBJECT` header | `RA` + `DEC` headers |
+| SER (.ser) | Filename (e.g. `Sun_12_51_34.ser`) | Built-in lookup table |
 
----
+## CLI flags
 
-## API Spec
+```
+python -m agent [OPTIONS]
 
-### POST /api/remote-telescope/live
-Agent sendet Teleskop-Status.
-
-**Header:** `Authorization: Bearer <API_KEY>`
-
-**Body:**
-```json
-{
-  "target_name": "M42",
-  "ra": "05:35:17",
-  "dec": "-05:23:28",
-  "status": "live"
-}
+--key <api_key>      Override saved API key
+--watch <path>       Override saved watch folder
+--api <url>          Override API endpoint
+--reconfigure        Re-run setup dialogs
+--no-autostart       Disable Windows boot auto-start
 ```
 
-**Response:** `200 OK`
-```json
-{ "success": true }
+## Features
+
+- **Auto-start on Windows** — registers in startup registry, runs on boot
+- **Persistent config** — saves credentials to system config directory
+- **Recursive watching** — scans subfolders (SharpCap/FireCapture save per-object)
+- **Native dialogs** — folder picker on Mac (osascript) and Windows (tkinter)
+- **Cross-platform** — Windows .exe, macOS .app, Linux binary
+
+## Build from source
+
+Requires Python 3.8+.
+
+```bash
+git clone https://github.com/SpaceG/aetherpin-connector
+cd aetherpin-connector
+pip install astropy watchdog requests
+python -m agent
 ```
 
-**Rate Limit:** max 1 Request pro 5 Sekunden pro Teleskop.
+## Build standalone binary
 
-### GET /api/remote-telescope/live
-Map holt aktive Teleskope.
-
-**Parameter:** `?observatory=sphere` (optional)
-
-**Response:**
-```json
-[
-  {
-    "telescope_id": 1,
-    "name": "Starfront 14",
-    "observatory": "Sphere",
-    "software": "NINA",
-    "target_name": "M42",
-    "ra": "05:35:17",
-    "dec": "-05:23:28",
-    "status": "live",
-    "last_seen": "2026-05-06T22:15:30Z",
-    "username": "lucas"
-  }
-]
+```bash
+pip install pyinstaller
+python build.py
 ```
 
-Nur Einträge mit `last_seen` < 120 Sekunden.
+Output in `dist/`. Uses PyInstaller onefile mode (~38 MB, bundles Python runtime).
+
+## Config location
+
+| Platform | Path |
+|----------|------|
+| Windows | `%APPDATA%\AetherPin\config.json` |
+| macOS | `~/Library/Application Support/AetherPin/config.json` |
+| Linux | `~/.config/aetherpin/config.json` |
+
+## License
+
+MIT
