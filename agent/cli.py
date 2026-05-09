@@ -60,6 +60,30 @@ def ask_key():
     return key.strip()
 
 
+def ask_api(default: str):
+    """Ask for the API endpoint URL."""
+    import subprocess, platform
+
+    prompt = 'Server URL (leave default for AetherPin.com):'
+    if platform.system() == 'Darwin':
+        script = (f'text returned of (display dialog "{prompt}" '
+                  f'default answer "{default}" with title "AetherPin Connector")')
+        result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+        url = result.stdout.strip()
+    else:
+        try:
+            import tkinter as tk
+            from tkinter import simpledialog
+            root = tk.Tk()
+            root.withdraw()
+            url = simpledialog.askstring('AetherPin Connector', prompt, initialvalue=default)
+            root.destroy()
+        except ImportError:
+            url = input(f'API URL [{default}]: ').strip() or default
+
+    return (url or default).strip()
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='aetherpin-connector',
@@ -69,6 +93,9 @@ def main():
     parser.add_argument('--watch', default=None, help='Path to FITS image folder')
     parser.add_argument('--api', default=DEFAULT_API, help='API endpoint URL')
     args = parser.parse_args()
+
+    # If no API URL provided via CLI, ask via dialog (with default)
+    api_url = args.api if args.api != DEFAULT_API else ask_api(DEFAULT_API)
 
     # If no key provided, open dialog
     api_key = args.key or ask_key()
@@ -81,10 +108,11 @@ def main():
     watch_path = args.watch or pick_folder()
 
     print('AetherPin Connector v0.1.0')
+    print(f'Server:  {api_url}')
     print(f'API key: {api_key[:6]}...{api_key[-4:]}')
     print(f'Folder:  {watch_path}')
 
-    watch_folder(watch_path, api_key, args.api)
+    watch_folder(watch_path, api_key, api_url)
 
 
 if __name__ == '__main__':
