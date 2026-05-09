@@ -1,7 +1,7 @@
 import requests
 
 
-DEFAULT_API = 'http://localhost:8888/aetherlog/api/remote-telescope/live'
+DEFAULT_API = 'https://aetherpin.com/api/remote-telescope/live'
 
 
 def send_status(api_key: str, data: dict, api_url: str = DEFAULT_API) -> dict:
