@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" alt="AetherPin" width="100%">
+  <img src="preview.png" alt="AetherPin" width="100%">
 </p>
 
 <p align="center">
