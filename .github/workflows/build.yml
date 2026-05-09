@@ -1,0 +1,77 @@
+name: Build AetherPin Connector
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install astropy watchdog requests pyinstaller
+
+      - name: Build .exe
+        run: python build.py
+
+      - name: Upload .exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: AetherPin-Connector-Windows
+          path: dist/AetherPin Connector.exe
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install astropy watchdog requests pyinstaller
+
+      - name: Build .app
+        run: python build.py
+
+      - name: Zip .app
+        run: cd dist && zip -r AetherPin-Connector-Mac.zip "AetherPin Connector.app"
+
+      - name: Upload .app
+        uses: actions/upload-artifact@v4
+        with:
+          name: AetherPin-Connector-Mac
+          path: dist/AetherPin-Connector-Mac.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install astropy watchdog requests pyinstaller
+
+      - name: Build binary
+        run: python build.py
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: AetherPin-Connector-Linux
+          path: dist/AetherPin Connector
