@@ -17,12 +17,12 @@ args = [
     '--noconfirm',
 ]
 
-# Mac: create .app bundle as a universal2 binary (arm64 + x86_64).
-# Without --target-arch, a build on macos-latest (arm64) produces an
-# arm64-only .app that crashes on Intel Macs with "Bad CPU type".
+# Mac: create .app bundle. Arch follows the host runner. The CI uses
+# macos-13 (Intel) so the resulting binary is x86_64 and runs on both
+# Intel natively and Apple Silicon via Rosetta 2. Universal2 was tried
+# but watchdog ships only single-arch wheels → IncompatibleBinaryArchError.
 if platform.system() == 'Darwin':
     args.append('--windowed')
-    args += ['--target-arch', 'universal2']
 
 # Hidden imports that PyInstaller misses
 args += [

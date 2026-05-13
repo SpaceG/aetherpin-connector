@@ -30,11 +30,11 @@ jobs:
           path: dist/AetherPin Connector.exe
 
   build-mac:
-    # macos-latest is arm64 — but we pass --target-arch universal2 to
-    # PyInstaller so the resulting .app contains BOTH arm64 and x86_64
-    # code. Runs natively on Intel and Apple Silicon. Earlier macos-latest
-    # build was arm64-only and crashed on Intel with "Bad CPU type".
-    runs-on: macos-latest
+    # macos-13 = last Intel runner. Produces x86_64 binary that runs
+    # natively on Intel and on Apple Silicon via Rosetta 2.
+    # Universal2 was tried but watchdog ships only single-arch wheels
+    # → PyInstaller IncompatibleBinaryArchError on fat-binary check.
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
