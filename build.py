@@ -23,6 +23,7 @@ args = [
 # but watchdog ships only single-arch wheels → IncompatibleBinaryArchError.
 if platform.system() == 'Darwin':
     args.append('--windowed')
+    args += ['--icon', 'icon.icns']
 
 # Hidden imports that PyInstaller misses
 args += [
