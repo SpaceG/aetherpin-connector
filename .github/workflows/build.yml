@@ -30,24 +30,32 @@ jobs:
           path: dist/AetherPin Connector.exe
 
   build-mac:
-    # macos-13 = last Intel runner. Produces x86_64 binary that runs
-    # natively on Intel and on Apple Silicon via Rosetta 2.
-    # Universal2 was tried but watchdog ships only single-arch wheels
-    # → PyInstaller IncompatibleBinaryArchError on fat-binary check.
-    runs-on: macos-13
+    # macos-latest is arm64. We force everything under Rosetta 2 with
+    # `arch -x86_64` so pip pulls x86_64 wheels and PyInstaller emits a
+    # x86_64 .app — runs natively on Intel, via Rosetta on Apple Silicon.
+    # macos-13 (native Intel) was tried but the queue is unreliable;
+    # universal2 was tried but watchdog ships only single-arch wheels.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python (universal2)
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install astropy watchdog requests pyinstaller
+      - name: Install dependencies (x86_64 via Rosetta)
+        run: |
+          arch -x86_64 python -m pip install --upgrade pip
+          arch -x86_64 pip install astropy watchdog requests pyinstaller
 
-      - name: Build .app
-        run: python build.py
+      - name: Build .app (x86_64)
+        run: arch -x86_64 python build.py
+
+      - name: Verify binary is x86_64
+        run: |
+          file "dist/AetherPin Connector.app/Contents/MacOS/AetherPin Connector"
+          file "dist/AetherPin Connector.app/Contents/MacOS/AetherPin Connector" | grep -q "x86_64" || (echo "ERROR: binary is not x86_64"; exit 1)
 
       - name: Zip .app
         run: cd dist && zip -r AetherPin-Connector-Mac.zip "AetherPin Connector.app"
