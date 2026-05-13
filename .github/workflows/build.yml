@@ -45,9 +45,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies (x86_64 via Rosetta)
+        # Pin numpy<2 — numpy 2.x links against NEWLAPACK ILP64 symbols in
+        # Accelerate that don't exist on macOS Monterey/Ventura (≤13.x),
+        # causing ImportError at runtime on older Macs.
         run: |
           arch -x86_64 python -m pip install --upgrade pip
-          arch -x86_64 pip install astropy watchdog requests pyinstaller
+          arch -x86_64 pip install "numpy<2" astropy watchdog requests pyinstaller
 
       - name: Build .app (x86_64)
         run: arch -x86_64 python build.py
