@@ -17,9 +17,12 @@ args = [
     '--noconfirm',
 ]
 
-# Mac: create .app bundle
+# Mac: create .app bundle as a universal2 binary (arm64 + x86_64).
+# Without --target-arch, a build on macos-latest (arm64) produces an
+# arm64-only .app that crashes on Intel Macs with "Bad CPU type".
 if platform.system() == 'Darwin':
     args.append('--windowed')
+    args += ['--target-arch', 'universal2']
 
 # Hidden imports that PyInstaller misses
 args += [
