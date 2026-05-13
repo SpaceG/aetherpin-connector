@@ -46,13 +46,21 @@ jobs:
 
       - name: Install dependencies (x86_64 via Rosetta)
         # Pin numpy<2 — numpy 2.x links against NEWLAPACK ILP64 symbols in
-        # Accelerate that don't exist on macOS Monterey/Ventura (≤13.x),
-        # causing ImportError at runtime on older Macs.
+        # Accelerate that don't exist on macOS Monterey/Ventura (≤13.x).
+        # MACOSX_DEPLOYMENT_TARGET=10.13 forces pip + PyInstaller to target
+        # macOS High Sierra+ so the .app runs on every Mac of the last ~8
+        # years. Without this, the host SDK (macOS 14/15 on macos-latest)
+        # bakes in a min-target of 13.0+ → "Diese Software muss
+        # aktualisiert werden" on Big Sur/Monterey.
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.13'
         run: |
           arch -x86_64 python -m pip install --upgrade pip
           arch -x86_64 pip install "numpy<2" astropy watchdog requests pyinstaller
 
-      - name: Build .app (x86_64)
+      - name: Build .app (x86_64, target=10.13)
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '10.13'
         run: arch -x86_64 python build.py
 
       - name: Verify binary is x86_64
