@@ -57,17 +57,18 @@ def watch_folder(folder: str, api_key: str, api_url: str):
 
     handler = FitsHandler(api_key, api_url)
 
-    # Scan existing files first
-    print(f'[scan] Checking existing files in {path}...')
-    for f in sorted(path.iterdir(), key=lambda x: x.stat().st_mtime if x.is_file() else 0):
-        if f.is_file():
-            handler._process(str(f))
+    # Recursively scan all existing files first (sorted by mtime, newest last)
+    print(f'[scan] Checking existing files in {path} (recursive)...')
+    files = [f for f in path.rglob('*') if f.is_file()]
+    files.sort(key=lambda x: x.stat().st_mtime)
+    for f in files:
+        handler._process(str(f))
 
     observer = Observer()
-    observer.schedule(handler, str(path), recursive=False)
+    observer.schedule(handler, str(path), recursive=True)
     observer.start()
 
-    print(f'[watch] Watching {path} for new files...')
+    print(f'[watch] Watching {path} (and all subfolders) for new files...')
     print(f'[watch] Pin will be set on first image, updated on target change')
 
     try:

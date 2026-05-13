@@ -30,7 +30,11 @@ jobs:
           path: dist/AetherPin Connector.exe
 
   build-mac:
-    runs-on: macos-latest
+    # macos-13 = last Intel runner. Produces an x86_64 binary that runs
+    # natively on Intel Macs AND on Apple Silicon via Rosetta 2.
+    # macos-latest is arm64 — would build an arm64-only .app that crashes
+    # on Intel Macs with "Bad CPU type in executable".
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
 
