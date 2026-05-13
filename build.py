@@ -9,10 +9,16 @@ import sys
 name = 'AetherPin Connector'
 entry = 'run.py'
 
+import platform as _p
+# Mac uses --onedir for instant launch (--onefile extracts to /tmp on every
+# start, takes 10-30s on Intel Macs with numpy+astropy bundled). On Win/Linux
+# we keep --onefile so users get a single-file download.
+_pack_mode = '--onedir' if _p.system() == 'Darwin' else '--onefile'
+
 args = [
     entry,
     '--name', name,
-    '--onefile',
+    _pack_mode,
     '--clean',
     '--noconfirm',
 ]
