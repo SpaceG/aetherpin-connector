@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install astropy watchdog requests pyinstaller
+          pip install watchdog requests pyinstaller
 
       - name: Build .exe
         run: python build.py
@@ -45,18 +45,15 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies (x86_64 via Rosetta)
-        # Pin numpy<2 — numpy 2.x links against NEWLAPACK ILP64 symbols in
-        # Accelerate that don't exist on macOS Monterey/Ventura (≤13.x).
-        # MACOSX_DEPLOYMENT_TARGET=10.13 forces pip + PyInstaller to target
-        # macOS High Sierra+ so the .app runs on every Mac of the last ~8
-        # years. Without this, the host SDK (macOS 14/15 on macos-latest)
-        # bakes in a min-target of 13.0+ → "Diese Software muss
-        # aktualisiert werden" on Big Sur/Monterey.
+        # astropy + numpy removed (v0.3.0+) — agent now uses an inline
+        # FITS header parser. Bundle drops from ~600 MB to ~30 MB and
+        # launch time goes from ~30s to ~2s on Intel Macs.
+        # MACOSX_DEPLOYMENT_TARGET=10.13 keeps compat with macOS Big Sur+.
         env:
           MACOSX_DEPLOYMENT_TARGET: '10.13'
         run: |
           arch -x86_64 python -m pip install --upgrade pip
-          arch -x86_64 pip install "numpy<2" astropy watchdog requests pyinstaller
+          arch -x86_64 pip install watchdog requests pyinstaller
 
       - name: Build .app (x86_64, target=10.13)
         env:
@@ -88,7 +85,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install astropy watchdog requests pyinstaller
+        run: pip install watchdog requests pyinstaller
 
       - name: Build binary
         run: python build.py

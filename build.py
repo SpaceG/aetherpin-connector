@@ -33,7 +33,6 @@ if platform.system() == 'Darwin':
 
 # Hidden imports that PyInstaller misses
 args += [
-    '--hidden-import', 'astropy.io.fits',
     '--hidden-import', 'watchdog.observers',
     '--hidden-import', 'watchdog.events',
     '--hidden-import', 'requests',

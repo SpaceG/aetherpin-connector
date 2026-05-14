@@ -1,6 +1,5 @@
 import struct
 import xml.etree.ElementTree as ET
-from astropy.io import fits
 from pathlib import Path
 
 
@@ -50,7 +49,40 @@ read_fits_header = read_header
 
 
 def _read_fits(path: str) -> dict:
-    hdr = fits.getheader(path)
+    """Minimal FITS header parser. FITS headers are 80-byte ASCII records
+    grouped in 2880-byte blocks, terminated by an 'END' record.
+    Format: 'KEYWORD = VALUE / comment' (value may be quoted string)."""
+    hdr = {}
+    try:
+        with open(path, 'rb') as f:
+            # Read up to ~16KB worth of header (covers typical FITS files)
+            for _ in range(200):  # max 200 records = 16000 bytes
+                rec = f.read(80)
+                if len(rec) < 80:
+                    break
+                rec_str = rec.decode('ascii', errors='ignore')
+                if rec_str.startswith('END'):
+                    break
+                if '=' not in rec_str[:10]:
+                    continue
+                key = rec_str[:8].strip()
+                rest = rec_str[10:].strip()
+                # Strip comment
+                if '/' in rest:
+                    # respect quotes — only split on / outside quotes
+                    in_quote = False
+                    for i, ch in enumerate(rest):
+                        if ch == "'":
+                            in_quote = not in_quote
+                        elif ch == '/' and not in_quote:
+                            rest = rest[:i].strip()
+                            break
+                # Strip surrounding quotes
+                if rest.startswith("'") and rest.endswith("'"):
+                    rest = rest[1:-1].strip()
+                hdr[key] = rest
+    except Exception:
+        pass
     return {
         'target_name': (hdr.get('OBJECT') or '').strip(),
         'ra': (hdr.get('RA') or hdr.get('OBJCTRA') or '').strip(),
