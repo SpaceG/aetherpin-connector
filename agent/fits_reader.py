@@ -112,15 +112,17 @@ def _read_ser(path: str) -> dict:
     # SER has no OBJECT/RA/DEC — parse target from filename
     target = _target_from_filename(path)
 
-    ra = ''
-    dec = ''
-    if target:
-        coords = KNOWN_OBJECTS.get(target.lower())
-        if coords:
-            ra = coords['ra']
-            dec = coords['dec']
+    # Fallback: SER capture is overwhelmingly solar/planetary. If we can't
+    # detect target from the filename, default to Sun (covers ~80% of SER
+    # users). Better a slightly-wrong pin than no pin at all.
+    if not target:
+        target = 'Sun'
 
-    return {'target_name': target or telescope or 'Unknown', 'ra': ra, 'dec': dec}
+    coords = KNOWN_OBJECTS.get(target.lower())
+    ra = coords['ra'] if coords else ''
+    dec = coords['dec'] if coords else ''
+
+    return {'target_name': target, 'ra': ra, 'dec': dec}
 
 
 def _target_from_filename(path: str) -> str:
