@@ -1,10 +1,16 @@
 import time
+import threading
 from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 from .fits_reader import read_fits_header, is_fits_file
-from .sender import send_status, send_offline
+from .sender import send_status, send_offline, send_heartbeat
+
+
+# How often to re-ping the API with the current target so the live row stays warm,
+# even if no new files arrive (e.g. user is processing or paused capture).
+HEARTBEAT_SECONDS = 30 * 60  # 30 min
 
 
 class FitsHandler(FileSystemEventHandler):
@@ -12,6 +18,9 @@ class FitsHandler(FileSystemEventHandler):
         self.api_key = api_key
         self.api_url = api_url
         self.current_target = None
+        self.current_ra = None
+        self.current_dec = None
+        self._lock = threading.Lock()
 
     def on_created(self, event):
         if event.is_directory:
@@ -38,16 +47,37 @@ class FitsHandler(FileSystemEventHandler):
             return
 
         # Only send if target changed
-        if data['target_name'] == self.current_target:
-            return
-
-        self.current_target = data['target_name']
+        with self._lock:
+            if data['target_name'] == self.current_target:
+                return
 
         try:
             send_status(self.api_key, data, self.api_url)
+            with self._lock:
+                self.current_target = data['target_name']
+                self.current_ra = data['ra']
+                self.current_dec = data['dec']
             print(f'[pin] {data["target_name"]} @ RA {data["ra"]} DEC {data["dec"]}')
         except Exception as e:
-            print(f'[api] Send failed: {e}')
+            # Network failed for good — leave current_target unchanged so the next
+            # file (or the heartbeat) tries again.
+            print(f'[api] Send failed after retries: {e}')
+
+    def heartbeat_tick(self):
+        with self._lock:
+            tgt, ra, dec = self.current_target, self.current_ra, self.current_dec
+        if not tgt:
+            return
+        try:
+            send_heartbeat(self.api_key, tgt, ra, dec, self.api_url)
+            print(f'[heartbeat] {tgt} still live')
+        except Exception as e:
+            print(f'[heartbeat] Failed: {e}')
+
+
+def _heartbeat_loop(handler: FitsHandler, stop_event: threading.Event):
+    while not stop_event.wait(HEARTBEAT_SECONDS):
+        handler.heartbeat_tick()
 
 
 def watch_folder(folder: str, api_key: str, api_url: str):
@@ -68,14 +98,21 @@ def watch_folder(folder: str, api_key: str, api_url: str):
     observer.schedule(handler, str(path), recursive=True)
     observer.start()
 
+    # Heartbeat thread — keeps live row warm if no new files for a long time
+    stop_event = threading.Event()
+    hb = threading.Thread(target=_heartbeat_loop, args=(handler, stop_event), daemon=True)
+    hb.start()
+
     print(f'[watch] Watching {path} (and all subfolders) for new files...')
     print(f'[watch] Pin will be set on first image, updated on target change')
+    print(f'[watch] Heartbeat every {HEARTBEAT_SECONDS // 60} min to keep live status warm')
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print('\n[watch] Session ended, removing pin...')
+        stop_event.set()
         try:
             send_offline(api_key, api_url)
             print('[watch] Pin removed.')
