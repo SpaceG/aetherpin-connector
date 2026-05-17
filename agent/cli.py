@@ -143,7 +143,7 @@ def main():
         print('Error: API key must start with "ap_"')
         sys.exit(1)
 
-    print('AetherPin Connector v0.2.0')
+    print('AetherPin Connector v0.2.3')
     print(f'Server:  {api_url}')
     print(f'API key: {api_key[:6]}...{api_key[-4:]}')
     print(f'Folder:  {watch_path}')

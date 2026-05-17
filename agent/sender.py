@@ -2,7 +2,7 @@ import requests
 
 
 DEFAULT_API = 'https://aetherpin.com/api/remote-telescope/live'
-USER_AGENT = 'AetherPin-Connector/0.1.0'
+USER_AGENT = 'AetherPin-Connector/0.2.3'
 
 
 def _headers(api_key: str) -> dict:
